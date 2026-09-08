@@ -1,4 +1,4 @@
-name: iCloud Mail Blacklist
+name: Mail Blacklist
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: icloud-mail-blacklist
+  group: mail-blacklist
   cancel-in-progress: false
 
 jobs:
@@ -25,23 +25,39 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Process iCloud Mail
+      - name: Process mail accounts
         env:
           ICLOUD_EMAIL: ${{ secrets.ICLOUD_EMAIL }}
           ICLOUD_APP_PASSWORD: ${{ secrets.ICLOUD_APP_PASSWORD }}
+
+          YAHOO_EMAIL: ${{ secrets.YAHOO_EMAIL }}
+          YAHOO_APP_PASSWORD: ${{ secrets.YAHOO_APP_PASSWORD }}
+
+          QQ_EMAIL: ${{ secrets.QQ_EMAIL }}
+          QQ_AUTH_CODE: ${{ secrets.QQ_AUTH_CODE }}
+
         run: |
           python mail_blacklist.py
 
-      - name: Save updated blacklist
+      - name: Save updated blacklists
         run: |
-          if git diff --quiet -- blacklist.txt; then
-            echo "Blacklist unchanged."
+          if git diff --quiet -- \
+            icloud_blacklist.txt \
+            yahoo_blacklist.txt \
+            qq_blacklist.txt; then
+
+            echo "Blacklists unchanged."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add blacklist.txt
-          git commit -m "Update iCloud mail blacklist"
+          git add \
+            icloud_blacklist.txt \
+            yahoo_blacklist.txt \
+            qq_blacklist.txt
+
+          git commit -m "Update mail blacklists"
           git push
