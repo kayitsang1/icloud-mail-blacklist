@@ -4,4 +4,5 @@ newsletter@email.elexcon.com
 noreply@email.openai.com
 noreply@jetsomore.com
 quickfox@mail.quickfox.com.cn
+security@mail.instagram.com
 support@mail.nerwo.co
