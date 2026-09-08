@@ -1,0 +1,50 @@
+name: iCloud Mail Blacklist
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "3-58/5 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: icloud-mail-blacklist
+  cancel-in-progress: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Process iCloud Mail
+        env:
+          ICLOUD_EMAIL: ${{ secrets.ICLOUD_EMAIL }}
+          ICLOUD_APP_PASSWORD: ${{ secrets.ICLOUD_APP_PASSWORD }}
+        run: |
+          python icloud_blacklist.py
+
+      - name: Save updated blacklist
+        run: |
+          if git diff --quiet -- blacklist.txt; then
+            echo "Blacklist unchanged."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add blacklist.txt
+          git commit -m "Update iCloud mail blacklist"
+          git push
