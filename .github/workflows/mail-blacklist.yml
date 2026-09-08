@@ -41,23 +41,70 @@ jobs:
 
       - name: Save updated blacklists
         run: |
-          if git diff --quiet -- \
-            icloud_blacklist.txt \
-            yahoo_blacklist.txt \
-            qq_blacklist.txt; then
+          FILES="icloud_blacklist.txt yahoo_blacklist.txt qq_blacklist.txt"
 
+          if git diff --quiet -- $FILES; then
             echo "Blacklists unchanged."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
-          git config user.email \
-            "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add \
-            icloud_blacklist.txt \
-            yahoo_blacklist.txt \
-            qq_blacklist.txt
-
+          git add $FILES
           git commit -m "Update mail blacklists"
-          git push
+
+          for attempt in 1 2 3 4 5; do
+            echo "Push attempt $attempt"
+
+            git fetch origin main
+
+            if ! git rebase origin/main; then
+              echo "Rebase conflict detected."
+
+              git rebase --abort
+
+              # 保留目前 Python 產生的三份 blacklist
+              cp icloud_blacklist.txt /tmp/icloud_blacklist.txt
+              cp yahoo_blacklist.txt /tmp/yahoo_blacklist.txt
+              cp qq_blacklist.txt /tmp/qq_blacklist.txt
+
+              # 回到遠端最新 main
+              git reset --hard origin/main
+
+              # 把目前執行新學到的 blacklist 合併回來
+              for file in $FILES; do
+                tmp="/tmp/$file"
+
+                touch "$file"
+
+                cat "$file" "$tmp" \
+                  | sed '/^[[:space:]]*$/d' \
+                  | tr '[:upper:]' '[:lower:]' \
+                  | sort -u \
+                  > "${file}.merged"
+
+                mv "${file}.merged" "$file"
+              done
+
+              git add $FILES
+
+              if git diff --cached --quiet; then
+                echo "Remote already contains all blacklist updates."
+                exit 0
+              fi
+
+              git commit -m "Merge mail blacklist updates"
+            fi
+
+            if git push origin HEAD:main; then
+              echo "Blacklist updates pushed successfully."
+              exit 0
+            fi
+
+            echo "Push collision. Retrying..."
+            sleep $((attempt * 2))
+          done
+
+          echo "Unable to push blacklist updates after retries."
+          exit 1
