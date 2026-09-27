@@ -5,5 +5,6 @@ noreply@email.openai.com
 noreply@jetsomore.com
 noreply@support.facebook.com
 quickfox@mail.quickfox.com.cn
+recommendations@inspire.pinterest.com
 security@mail.instagram.com
 support@mail.nerwo.co
